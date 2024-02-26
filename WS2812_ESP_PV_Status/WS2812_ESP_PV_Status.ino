@@ -66,9 +66,9 @@ Adafruit_MQTT_Client mqtt(&client, AIO_SERVER, AIO_SERVERPORT, AIO_USERNAME, AIO
 /****************************** Feeds ***************************************/
 
 // Setup a feed called 'onoff' for subscribing to changes.
-Adafruit_MQTT_Subscribe pv_production = Adafruit_MQTT_Subscribe(&mqtt, "pv/yield");
-Adafruit_MQTT_Subscribe total_consumption = Adafruit_MQTT_Subscribe(&mqtt, "pv/load");
-Adafruit_MQTT_Subscribe battery_state = Adafruit_MQTT_Subscribe(&mqtt, "pv/battery");
+Adafruit_MQTT_Subscribe pv_production = Adafruit_MQTT_Subscribe(&mqtt, "pv/monitor/yield");
+Adafruit_MQTT_Subscribe total_consumption = Adafruit_MQTT_Subscribe(&mqtt, "pv/monitor/load");
+Adafruit_MQTT_Subscribe battery_state = Adafruit_MQTT_Subscribe(&mqtt, "pv/monitor/battery");
 
 /*************************** Sketch Code ************************************/
 
@@ -79,6 +79,7 @@ void pvProductionCallback(double production){
   Serial.println(production);
   // Set yellow leds - production - Leds 40-59
   production = production * 2 / 1000;
+  int max_led_count = MAX_LED_COUNT / 3;
   int led_count = min(int(production), 20);
   int offset = 40;
   //FULL LIGHTED PIXELS
@@ -90,7 +91,7 @@ void pvProductionCallback(double production){
   leds.setPixelColor(led_count + offset, leds.Color(255 * dimmed_factor, 255 * dimmed_factor, 0));
   
   //BLACK PIXELS
-  for (int i = led_count + offset + 1; i < 20; i = i + 1) {
+  for (int i = led_count + offset + 1; i < offset + max_led_count; i = i + 1) {
     leds.setPixelColor(i, BLACK);
   }
 };
@@ -119,6 +120,7 @@ void batteryStateCallback(double battery_state){
   // Set green leds - battery - Leds 0-19
   battery_state = battery_state / 5;
   int led_count = min(int(battery_state),20);
+  int max_led_count = MAX_LED_COUNT / 3;
   int offset = 0;
   for (int i = offset; i < led_count + offset; i = i + 1) {
     leds.setPixelColor(i, GREEN);
@@ -127,7 +129,7 @@ void batteryStateCallback(double battery_state){
   double dimmed_factor = battery_state-led_count;
   leds.setPixelColor(led_count+offset, leds.Color(0, 128 * dimmed_factor, 0));
 
-  for (int i = led_count + offset + 1; i < offset + 20; i = i + 1) {
+  for (int i = led_count + offset + 1; i < offset + max_led_count; i = i + 1) {
     leds.setPixelColor(i, BLACK);
   }
 };
