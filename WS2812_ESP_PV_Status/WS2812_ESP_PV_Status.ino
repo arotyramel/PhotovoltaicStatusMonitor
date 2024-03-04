@@ -59,6 +59,7 @@ Adafruit_NeoPixel leds = Adafruit_NeoPixel(MAX_LED_COUNT, D2, NEO_GRB + NEO_KHZ8
 WiFiClient client;
 // or... use WiFiFlientSecure for SSL
 //WiFiClientSecure client;
+uint8_t brightness_g;
 
 // Setup the MQTT client class by passing in the WiFi client and MQTT server and login details.
 Adafruit_MQTT_Client mqtt(&client, AIO_SERVER, AIO_SERVERPORT, AIO_USERNAME, AIO_KEY);
@@ -66,9 +67,10 @@ Adafruit_MQTT_Client mqtt(&client, AIO_SERVER, AIO_SERVERPORT, AIO_USERNAME, AIO
 /****************************** Feeds ***************************************/
 
 // Setup a feed called 'onoff' for subscribing to changes.
-Adafruit_MQTT_Subscribe pv_production = Adafruit_MQTT_Subscribe(&mqtt, "pv/monitor/yield");
-Adafruit_MQTT_Subscribe total_consumption = Adafruit_MQTT_Subscribe(&mqtt, "pv/monitor/load");
-Adafruit_MQTT_Subscribe battery_state = Adafruit_MQTT_Subscribe(&mqtt, "pv/monitor/battery");
+Adafruit_MQTT_Subscribe pv_production_sub = Adafruit_MQTT_Subscribe(&mqtt, "pv/monitor/yield");
+Adafruit_MQTT_Subscribe total_consumption_sub = Adafruit_MQTT_Subscribe(&mqtt, "pv/monitor/load");
+Adafruit_MQTT_Subscribe battery_state_sub = Adafruit_MQTT_Subscribe(&mqtt, "pv/monitor/battery");
+Adafruit_MQTT_Subscribe brightness_sub = Adafruit_MQTT_Subscribe(&mqtt, "pv/monitor/brightness");
 
 /*************************** Sketch Code ************************************/
 
@@ -134,9 +136,13 @@ void batteryStateCallback(double battery_state){
   }
 };
 
+void brightnessCallback(uint32_t brightness){
+  brightness_g = static_cast<uint8_t>(min(brightness,255u));
+}
+
 void setup() {
   Serial.begin(115200);
-
+  brightness_g = 128;
   pinMode(D2, OUTPUT);
   digitalWrite(D2, LOW);
 
@@ -166,14 +172,16 @@ void setup() {
   Serial.println("WiFi connected");
   Serial.println("IP address: "); Serial.println(WiFi.localIP());
 
-  pv_production.setCallback(pvProductionCallback);
-  total_consumption.setCallback(totalConsumptionCallback);
-  battery_state.setCallback(batteryStateCallback);
+  pv_production_sub.setCallback(pvProductionCallback);
+  total_consumption_sub.setCallback(totalConsumptionCallback);
+  battery_state_sub.setCallback(batteryStateCallback);
+  brightness_sub.setCallback(brightnessCallback);
 
   // Setup MQTT subscription for onoff feed.
-  mqtt.subscribe(&pv_production);
-  mqtt.subscribe(&total_consumption);
-  mqtt.subscribe(&battery_state);
+  mqtt.subscribe(&pv_production_sub);
+  mqtt.subscribe(&total_consumption_sub);
+  mqtt.subscribe(&battery_state_sub);
+  mqtt.subscribe(&brightness_sub);
 
 }
 
@@ -190,7 +198,7 @@ void loop() {
   Adafruit_MQTT_Subscribe *subscription;
   mqtt.processPackets(10000);
 
-  leds.setBrightness(128);
+  leds.setBrightness(brightness_g);
   leds.show();
   if(! mqtt.ping()) {
     mqtt.disconnect();
